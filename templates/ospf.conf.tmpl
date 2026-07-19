@@ -1,0 +1,18 @@
+# Generated from network/inventory.json; do not edit on the node.
+protocol ospf v3 dn42_ospf {
+    ipv4 {
+        import where is_self_net() && source != RTS_BGP;
+        export where is_self_net() && source != RTS_BGP;
+    };
+
+    include "ospf/*";
+};
+
+protocol ospf v3 dn42_ospf6 {
+    ipv6 {
+        import where is_self_net_v6() && source != RTS_BGP;
+        export where is_self_net_v6() && source != RTS_BGP;
+    };
+
+    include "ospf/*";
+};

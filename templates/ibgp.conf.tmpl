@@ -1,0 +1,31 @@
+# Generated from network/inventory.json; do not edit on the node.
+template bgp ibgpeers {
+    local as OWNAS;
+
+    ipv4 {
+        import filter {
+            if source = RTS_BGP && is_valid_network() && !is_self_net() then {
+                bgp_local_pref = ibgp_calculate_priority();
+                accept;
+            }
+            reject;
+        };
+        export where source = RTS_BGP && is_valid_network() && !is_self_net();
+        next hop self;
+        extended next hop;
+    };
+
+    ipv6 {
+        import filter {
+            if source = RTS_BGP && is_valid_network_v6() && !is_self_net_v6() then {
+                bgp_local_pref = ibgp_calculate_priority();
+                accept;
+            }
+            reject;
+        };
+        export where source = RTS_BGP && is_valid_network_v6() && !is_self_net_v6();
+        next hop self;
+    };
+};
+
+include "ibgp/*";

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "network": {
+    "asn": 4242422921,
+    "ipv4Prefix": "172.21.118.160/28",
+    "ipv6Prefix": "fdd2:e3e2:c922::/48"
+  },
+  "nodes": {
+    "tyo": {
+      "host": "156.231.116.81",
+      "routerId": "172.21.118.161",
+      "meshIpv6": "fdd2:e3e2:c922::1",
+      "ospfStubInterface": "dn42-dummy",
+      "links": {
+        "fra": { "interface": "ge-nc", "cost": 255, "file": "ge-nc", "protocol": "dn42_ibgp_ge-nc" },
+        "hkt": { "interface": "dn42-HKT", "cost": 50, "file": "hkt", "protocol": "dn42_ibgp_hkt" },
+        "lax": { "interface": "dn42-LAX", "cost": 100, "file": "lax", "protocol": "dn42_ibgp_lax" }
+      }
+    },
+    "fra": {
+      "host": "156.226.175.73",
+      "routerId": "172.21.118.162",
+      "meshIpv6": "fdd2:e3e2:c922::2",
+      "ospfStubInterface": "dn42-dummy",
+      "links": {
+        "tyo": { "interface": "jp-iij", "cost": 255, "file": "jp-iij", "protocol": "dn42_ibgp_jp-iij" },
+        "hkt": { "interface": "dn42-HKT", "cost": 240, "file": "hkt", "protocol": "dn42_ibgp_hkt" },
+        "lax": { "interface": "dn42-LAX", "cost": 155, "file": "lax", "protocol": "dn42_ibgp_lax" }
+      }
+    },
+    "hkt": {
+      "host": "154.37.219.205",
+      "routerId": "172.21.118.164",
+      "meshIpv6": "fdd2:e3e2:c922::4",
+      "ospfStubInterface": "dn42",
+      "links": {
+        "tyo": { "interface": "dn42-TYO", "cost": 50, "file": "jp-iij", "protocol": "dn42_ibgp_jp-iij" },
+        "fra": { "interface": "dn42-GE", "cost": 235, "file": "ge-nc", "protocol": "dn42_ibgp_ge-nc" },
+        "lax": { "interface": "dn42-LAX", "cost": 155, "file": "LAX", "protocol": "dn42_ibgp_LAX" }
+      }
+    },
+    "lax": {
+      "host": "45.202.243.95",
+      "routerId": "172.21.118.165",
+      "meshIpv6": "fdd2:e3e2:c922::5",
+      "ospfStubInterface": "dn42",
+      "links": {
+        "tyo": { "interface": "dn42-TYO", "cost": 100, "file": "jp-iij", "protocol": "dn42_ibgp_jp-iij" },
+        "fra": { "interface": "dn42-GE", "cost": 155, "file": "ge-nc", "protocol": "dn42_ibgp_ge-nc" },
+        "hkt": { "interface": "dn42-HKT", "cost": 160, "file": "hkt", "protocol": "dn42_ibgp_hkt" }
+      }
+    }
+  }
+}
