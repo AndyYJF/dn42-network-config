@@ -1,16 +1,21 @@
-# Repository-managed DN42 core
+# DN42 network configuration
 
-This directory is the source of truth for the four-node internal routing core.
+This repository is the source of truth for the four-node internal routing core.
 It follows the useful parts of `iYoRoy-Network/bird2-config`: data is reviewed
 in Git, configs are rendered deterministically, CI validates the topology, and
 live state is audited before and after any rollout.
+
+It is intentionally separate from
+[`AndyYJF/dn42-peering`](https://github.com/AndyYJF/dn42-peering): this
+repository owns the stable OSPF/iBGP core, while the Auto Peer service owns
+dynamic external peer lifecycle.
 
 ## Ownership boundary
 
 | Path on a node | Owner | Why |
 |---|---|---|
-| `/etc/bird/ospf.conf`, `/etc/bird/ospf/*` | this directory | OSPF topology and costs change through Git review |
-| `/etc/bird/ibgp.conf`, `/etc/bird/ibgp/*` | this directory | the four-node iBGP full mesh changes through Git review |
+| `/etc/bird/ospf.conf`, `/etc/bird/ospf/*` | this repository | OSPF topology and costs change through Git review |
+| `/etc/bird/ibgp.conf`, `/etc/bird/ibgp/*` | this repository | the four-node iBGP full mesh changes through Git review |
 | `/etc/bird/peers/*` | Auto Peer agent / existing manual config | dynamic peers must not be deleted by a core rollout |
 | `/etc/wireguard/dn42-<full-asn>.conf` | Auto Peer agent | peer lifecycle remains transactional and database-backed |
 | node private keys, API tokens, passwords | node-local secret files | secrets are forbidden in `inventory.json` |
@@ -34,31 +39,31 @@ repository-managed rollout.
 Validate without leaving generated files:
 
 ```bash
-python3 network/render.py --check
-python3 -m unittest discover -s network -p 'test_*.py' -v
+python3 render.py --check
+python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
 Render files for inspection:
 
 ```bash
-python3 network/render.py
-find network/.rendered -type f -maxdepth 4 -print
+python3 render.py
+find .rendered -type f -maxdepth 4 -print
 ```
 
 Audit live routing through an SSH key or ssh-agent (passwords are intentionally
 unsupported):
 
 ```bash
-python3 network/audit.py --identity deploy/.work/deploy_key
-python3 network/audit.py --node tyo --identity deploy/.work/deploy_key
+python3 audit.py --identity /path/to/deploy_key
+python3 audit.py --node tyo --identity /path/to/deploy_key
 ```
 
 Render locally, run a remote parse/health check, then explicitly apply one node:
 
 ```bash
-python3 network/deploy.py --node hkt --mode local
-python3 network/deploy.py --node hkt --mode remote-check --identity deploy/.work/deploy_key
-python3 network/deploy.py --node hkt --mode apply --confirm-node hkt --identity deploy/.work/deploy_key
+python3 deploy.py --node hkt --mode local
+python3 deploy.py --node hkt --mode remote-check --identity /path/to/deploy_key
+python3 deploy.py --node hkt --mode apply --confirm-node hkt --identity /path/to/deploy_key
 ```
 
 `apply_core.py` refuses unexpected paths, takes a non-blocking deployment lock,
@@ -72,7 +77,7 @@ Deployment is always explicit and node-scoped. The first rollout must be a
 canary and preserve the dynamic peer directory:
 
 1. Render and review the node diff.
-2. Capture `network/audit.py` as the pre-change baseline.
+2. Capture `audit.py` as the pre-change baseline.
 3. Copy only `ospf.conf`, `ospf/`, `ibgp.conf`, and `ibgp/` to a remote staging
    directory. Never use `rsync --delete` against all of `/etc/bird`.
 4. Overlay those files onto a copy of `/etc/bird` and run `bird -p -c bird.conf`.

@@ -164,7 +164,7 @@ def render_template(name, values=None):
 
 def render_ospf_area(node):
     lines = [
-        "# Generated from network/inventory.json; do not edit on the node.",
+        "# Generated from inventory.json; do not edit on the node.",
         "area 0.0.0.0 {",
         '    interface "%s" { stub; };' % node["ospfStubInterface"],
     ]
@@ -223,7 +223,7 @@ def render(inventory, output):
 
     manifest = {
         "schemaVersion": 1,
-        "source": "network/inventory.json",
+        "source": "inventory.json",
         "nodes": summaries,
     }
     write_config(output / "manifest.json", json.dumps(manifest, indent=2, sort_keys=True) + "\n")

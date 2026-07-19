@@ -1,0 +1,10 @@
+.rendered/
+__pycache__/
+*.pyc
+.work/
+
+# Deployment credentials and local overrides must never be committed.
+*_key
+*.key
+*.pem
+inventory.local.json
