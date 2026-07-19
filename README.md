@@ -1,10 +1,5 @@
 # DN42 network configuration
 
-This repository is the source of truth for the four-node internal routing core.
-It follows the useful parts of `iYoRoy-Network/bird2-config`: data is reviewed
-in Git, configs are rendered deterministically, CI validates the topology, and
-live state is audited before and after any rollout.
-
 It is intentionally separate from
 [`AndyYJF/dn42-peering`](https://github.com/AndyYJF/dn42-peering): this
 repository owns the stable OSPF/iBGP core, while the Auto Peer service owns
