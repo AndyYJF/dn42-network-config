@@ -81,6 +81,47 @@ class ApplyCoreTests(unittest.TestCase):
         )
         self.assertTrue(health["ok"])
 
+    def test_growth_deployment_gates_on_live_peers_only(self):
+        protocols_growth = PROTOCOLS_HEALTHY + "dn42_ibgp_d BGP --- up now Connect\n"
+        with tempfile.TemporaryDirectory() as staging, tempfile.TemporaryDirectory() as bird, tempfile.TemporaryDirectory() as backups:
+            write_tree(staging, "new", suffixes=("a", "b", "c", "d"))
+            write_tree(bird, "old")
+            (Path(bird) / "bird.conf").write_text("include core\n")
+
+            def runner(command, cwd=None, timeout=60):
+                if command[:2] == ["bird", "-p"]:
+                    return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+                if command == ["birdc", "configure"]:
+                    return subprocess.CompletedProcess(command, 0, stdout="Reconfigured", stderr="")
+                if "ospf" in command:
+                    return subprocess.CompletedProcess(command, 0, stdout=OSPF_HEALTHY, stderr="")
+                return subprocess.CompletedProcess(command, 0, stdout=protocols_growth, stderr="")
+
+            result = apply_core.apply(staging, bird, backups, expected_ibgp=4, runner=runner)
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["gatedProtocols"], ["dn42_ibgp_a", "dn42_ibgp_b", "dn42_ibgp_c"])
+            self.assertEqual(result["postHealth"]["newPeers"]["dn42_ibgp_d"], "Connect")
+            self.assertIn("new", (Path(bird) / "ospf.conf").read_text())
+
+    def test_new_peer_missing_from_bird_triggers_rollback(self):
+        with tempfile.TemporaryDirectory() as staging, tempfile.TemporaryDirectory() as bird, tempfile.TemporaryDirectory() as backups:
+            write_tree(staging, "new", suffixes=("a", "b", "c", "d"))
+            write_tree(bird, "old")
+            (Path(bird) / "bird.conf").write_text("include core\n")
+
+            def runner(command, cwd=None, timeout=60):
+                if command[:2] == ["bird", "-p"]:
+                    return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+                if command == ["birdc", "configure"]:
+                    return subprocess.CompletedProcess(command, 0, stdout="Reconfigured", stderr="")
+                if "ospf" in command:
+                    return subprocess.CompletedProcess(command, 0, stdout=OSPF_HEALTHY, stderr="")
+                return subprocess.CompletedProcess(command, 0, stdout=PROTOCOLS_HEALTHY, stderr="")
+
+            with self.assertRaisesRegex(apply_core.ApplyError, "failed to load"):
+                apply_core.apply(staging, bird, backups, expected_ibgp=4, runner=runner)
+            self.assertIn("old", (Path(bird) / "ospf.conf").read_text())
+
     def test_failed_reconfigure_restores_previous_core(self):
         with tempfile.TemporaryDirectory() as staging, tempfile.TemporaryDirectory() as bird, tempfile.TemporaryDirectory() as backups:
             write_tree(staging, "new")

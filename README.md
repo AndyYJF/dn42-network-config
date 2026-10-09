@@ -10,7 +10,7 @@ dynamic external peer lifecycle.
 | Path on a node | Owner | Why |
 |---|---|---|
 | `/etc/bird/ospf.conf`, `/etc/bird/ospf/*` | this repository | OSPF topology and costs change through Git review |
-| `/etc/bird/ibgp.conf`, `/etc/bird/ibgp/*` | this repository | the four-node iBGP full mesh changes through Git review |
+| `/etc/bird/ibgp.conf`, `/etc/bird/ibgp/*` | this repository | the iBGP full mesh changes through Git review |
 | `/etc/bird/peers/*` | Auto Peer agent / existing manual config | dynamic peers must not be deleted by a core rollout |
 | `/etc/wireguard/dn42-<full-asn>.conf` | Auto Peer agent | peer lifecycle remains transactional and database-backed |
 | node private keys, API tokens, passwords | node-local secret files | secrets are forbidden in `inventory.json` |
@@ -80,3 +80,19 @@ canary and preserve the dynamic peer directory:
 6. Require three Full/PtP neighbors in both OSPF families and three Established
    iBGP sessions. Restore the backup if the check fails.
 7. Roll out HKT first, then TYO, FRA, and LAX one at a time.
+
+## Core-only nodes
+
+`cn-shanghai` is a core-only node: it joins the OSPF/iBGP mesh but **must not
+accept external eBGP peers**. It is deliberately absent from the Auto Peer
+service configuration (`dn42-peering/config/nodes.json`), so no agent runs
+there and `/etc/bird/peers/` stays empty.
+
+## Growing the mesh
+
+Adding a node changes every node's expected neighbor count. The health gate in
+`apply_core.py` is growth-safe: peers present in both the live and the staged
+`ibgp/` tree must stay Full/Established (no regression), while newly added
+peers only need to load into BIRD — they establish once the far end is
+deployed. Roll out the existing nodes first, the new node last, then verify
+all neighbors with `audit.py`.
