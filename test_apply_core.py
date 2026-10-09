@@ -22,14 +22,14 @@ dn42_ibgp_c BGP --- up now Established
 """
 
 
-def write_tree(root, label="new"):
+def write_tree(root, label="new", suffixes=("a", "b", "c")):
     root = Path(root)
     (root / "ospf").mkdir(parents=True)
     (root / "ibgp").mkdir(parents=True)
     (root / "ospf.conf").write_text("# %s ospf root\n" % label)
     (root / "ibgp.conf").write_text("# %s ibgp root\n" % label)
     (root / "ospf" / "0.conf").write_text("# %s ospf area\n" % label)
-    for suffix in ("a", "b", "c"):
+    for suffix in suffixes:
         (root / "ibgp" / (suffix + ".conf")).write_text(
             "protocol bgp 'dn42_ibgp_%s' from ibgpeers { neighbor fd00::1 as OWNAS; };\n" % suffix
         )
