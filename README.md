@@ -83,10 +83,10 @@ canary and preserve the dynamic peer directory:
 
 ## Core-only nodes
 
-`cn-shanghai` is a core-only node: it joins the OSPF/iBGP mesh but **must not
-accept external eBGP peers**. In the Auto Peer service it appears as a
-`coreOnly` display entry (no agent, `/etc/bird/peers/` stays empty); the
-self-service wizard cannot select it and the API rejects peering requests.
+`cn-shanghai` joined the OSPF/iBGP mesh later than the other nodes. It accepts
+external eBGP peers through the Auto Peer service but every session requires
+**manual approval** (`manualApproval: true` in `dn42-peering/config/nodes.json`)
+because its international uplinks are capacity-limited.
 
 Operational note: all cn-shanghai international uplinks have a physical path
 MTU of 1280, and fragmented outer UDP is dropped. WireGuard interfaces keep
