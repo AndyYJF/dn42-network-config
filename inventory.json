@@ -48,7 +48,7 @@
       "meshIpv6": "fdd2:e3e2:c922::5",
       "ospfStubInterface": "dn42",
       "links": {
-        "cn-shanghai": { "interface": "dn42-CNSHA", "cost": 280, "file": "cn-sha", "protocol": "dn42_ibgp_cn-sha" },
+        "cn-shanghai": { "interface": "dn42-CNSHA", "cost": 160, "file": "cn-sha", "protocol": "dn42_ibgp_cn-sha" },
         "tyo": { "interface": "dn42-TYO", "cost": 100, "file": "jp-iij", "protocol": "dn42_ibgp_jp-iij" },
         "fra": { "interface": "dn42-GE", "cost": 155, "file": "ge-nc", "protocol": "dn42_ibgp_ge-nc" },
         "hkt": { "interface": "dn42-HKT", "cost": 160, "file": "hkt", "protocol": "dn42_ibgp_hkt" }
@@ -62,7 +62,7 @@
       "links": {
         "fra": { "interface": "dn42-FRA", "cost": 190, "file": "fra", "protocol": "dn42_ibgp_fra" },
         "hkt": { "interface": "dn42-HKT", "cost": 35, "file": "hkt", "protocol": "dn42_ibgp_hkt" },
-        "lax": { "interface": "dn42-LAX", "cost": 280, "file": "lax", "protocol": "dn42_ibgp_lax" },
+        "lax": { "interface": "dn42-LAX", "cost": 160, "file": "lax", "protocol": "dn42_ibgp_lax" },
         "tyo": { "interface": "dn42-TYO", "cost": 110, "file": "tyo", "protocol": "dn42_ibgp_tyo" }
       }
     }
