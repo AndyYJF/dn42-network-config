@@ -84,9 +84,9 @@ canary and preserve the dynamic peer directory:
 ## Core-only nodes
 
 `cn-shanghai` is a core-only node: it joins the OSPF/iBGP mesh but **must not
-accept external eBGP peers**. It is deliberately absent from the Auto Peer
-service configuration (`dn42-peering/config/nodes.json`), so no agent runs
-there and `/etc/bird/peers/` stays empty.
+accept external eBGP peers**. In the Auto Peer service it appears as a
+`coreOnly` display entry (no agent, `/etc/bird/peers/` stays empty); the
+self-service wizard cannot select it and the API rejects peering requests.
 
 Operational note: all cn-shanghai international uplinks have a physical path
 MTU of 1280, and fragmented outer UDP is dropped. WireGuard interfaces keep
