@@ -88,6 +88,11 @@ accept external eBGP peers**. It is deliberately absent from the Auto Peer
 service configuration (`dn42-peering/config/nodes.json`), so no agent runs
 there and `/etc/bird/peers/` stays empty.
 
+Operational note: all cn-shanghai international uplinks have a physical path
+MTU of 1280, and fragmented outer UDP is dropped. WireGuard interfaces keep
+MTU 1420 (IPv6 needs >= 1280 on the link); instead TCP MSS is clamped to 1120
+on `dn42-+` interfaces via node-local `dn42-mss-clamp.service`.
+
 ## Growing the mesh
 
 Adding a node changes every node's expected neighbor count. The health gate in
