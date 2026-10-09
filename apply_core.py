@@ -86,6 +86,18 @@ def parse_ospf(text):
     return counts
 
 
+def live_ibgp_protocols(bird_dir):
+    """Protocol names from the currently deployed ibgp/ directory."""
+    ibgp_dir = Path(bird_dir) / "ibgp"
+    protocols = []
+    if ibgp_dir.is_dir():
+        for path in sorted(ibgp_dir.glob("*.conf")):
+            found = PROTOCOL_RE.findall(path.read_text(encoding="utf-8"))
+            if len(found) == 1:
+                protocols.extend(found)
+    return sorted(protocols)
+
+
 def parse_ibgp(text, expected_protocols):
     states = {}
     expected_lower = {name.lower(): name for name in expected_protocols}
@@ -204,13 +216,19 @@ def bird_reconfigure(runner=run):
 
 
 def apply(staging_dir, bird_dir, backup_parent, expected_ibgp=3, recovery_timeout=300, dry_run=False, runner=run):
-    protocols = validate_staging(staging_dir, expected_ibgp)
-    pre_health = health_snapshot(protocols, expected_ibgp, runner)
+    staged_protocols = validate_staging(staging_dir, expected_ibgp)
+    live_protocols = live_ibgp_protocols(bird_dir)
+    # Growth/shrink-safe gate: only peers present in both the live tree and the
+    # staged tree must stay healthy. New peers cannot establish until the far
+    # end is deployed; removed peers are gone by design.
+    gated_protocols = [name for name in staged_protocols if name in live_protocols]
+    gated_count = len(gated_protocols)
+    pre_health = health_snapshot(gated_protocols, gated_count, runner)
     if not pre_health["ok"]:
         raise ApplyError("refusing deployment because the routing core is not healthy: %s" % json.dumps(pre_health, sort_keys=True))
     parse_warnings = parse_check(staging_dir, bird_dir, runner)
     if dry_run:
-        return {"ok": True, "dryRun": True, "protocols": protocols, "preHealth": pre_health, "parseWarnings": parse_warnings}
+        return {"ok": True, "dryRun": True, "protocols": staged_protocols, "gatedProtocols": gated_protocols, "preHealth": pre_health, "parseWarnings": parse_warnings}
 
     deploy_id = "%s-%s" % (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"), uuid.uuid4().hex[:8])
     backup_dir = Path(backup_parent) / deploy_id
@@ -220,12 +238,22 @@ def apply(staging_dir, bird_dir, backup_parent, expected_ibgp=3, recovery_timeou
         replace_managed(staging_dir, bird_dir)
         promoted = True
         configure_output = bird_reconfigure(runner)
-        post_health = wait_healthy(protocols, expected_ibgp, recovery_timeout, runner)
+        post_health = wait_healthy(gated_protocols, gated_count, recovery_timeout, runner)
+        # New peers must at least load into BIRD; establishment is verified
+        # after the far end is deployed (audit.py / final rollout check).
+        new_protocols = [name for name in staged_protocols if name not in live_protocols]
+        if new_protocols:
+            loaded = parse_ibgp(runner(["birdc", "show", "protocols"], timeout=30).stdout, new_protocols)
+            missing = [name for name, state in loaded.items() if state == "missing"]
+            if missing:
+                raise ApplyError("new iBGP sessions failed to load: %s" % ", ".join(missing))
+            post_health["newPeers"] = loaded
         return {
             "ok": True,
             "dryRun": False,
             "backupDir": str(backup_dir),
-            "protocols": protocols,
+            "protocols": staged_protocols,
+            "gatedProtocols": gated_protocols,
             "preHealth": pre_health,
             "postHealth": post_health,
             "configure": configure_output,
@@ -237,7 +265,7 @@ def apply(staging_dir, bird_dir, backup_parent, expected_ibgp=3, recovery_timeou
             try:
                 restore_managed(bird_dir, backup_dir)
                 bird_reconfigure(runner)
-                wait_healthy(protocols, expected_ibgp, recovery_timeout, runner)
+                wait_healthy(gated_protocols, gated_count, recovery_timeout, runner)
             except Exception as caught:
                 rollback_error = str(caught)
         detail = str(error)

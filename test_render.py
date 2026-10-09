@@ -12,11 +12,11 @@ class NetworkRenderTests(unittest.TestCase):
     def setUp(self):
         self.inventory = render.load_inventory()
 
-    def test_production_inventory_is_a_valid_four_node_full_mesh(self):
+    def test_production_inventory_is_a_valid_five_node_full_mesh(self):
         self.assertEqual(render.validate_inventory(self.inventory), [])
-        self.assertEqual(set(self.inventory["nodes"]), {"tyo", "hkt", "fra", "lax"})
+        self.assertEqual(set(self.inventory["nodes"]), {"tyo", "hkt", "fra", "lax", "cn-shanghai"})
         for node in self.inventory["nodes"].values():
-            self.assertEqual(len(node["links"]), 3)
+            self.assertEqual(len(node["links"]), 4)
 
     def test_render_is_deterministic_and_separates_dynamic_peers(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
@@ -26,7 +26,7 @@ class NetworkRenderTests(unittest.TestCase):
             for node_id in self.inventory["nodes"]:
                 node_dir = Path(first) / node_id
                 self.assertTrue((node_dir / "ospf.conf").exists())
-                self.assertEqual(len(list((node_dir / "ibgp").glob("*.conf"))), 3)
+                self.assertEqual(len(list((node_dir / "ibgp").glob("*.conf"))), 4)
                 self.assertFalse((node_dir / "peers").exists())
                 for config in node_dir.rglob("*.conf"):
                     self.assertNotIn(b"\r\n", config.read_bytes())
@@ -48,17 +48,20 @@ class NetworkRenderTests(unittest.TestCase):
         broken["nodes"]["tyo"]["privateKey"] = "must-not-be-committed"
         self.assertTrue(any("secret-like key" in error for error in render.validate_inventory(broken)))
 
-    def test_live_audit_parser_requires_three_full_neighbors_and_ibgp_sessions(self):
+    def test_live_audit_parser_requires_four_full_neighbors_and_ibgp_sessions(self):
         ospf = """dn42_ospf:
 a Full/PtP
 b Full/PtP
 c Full/PtP
+d Full/PtP
 dn42_ospf6:
 a Full/PtP
 b Full/PtP
 c Full/PtP
+d Full/PtP
 """
-        protocols = """dn42_ibgp_ge-nc BGP --- up now Established
+        protocols = """dn42_ibgp_cn-sha BGP --- up now Established
+dn42_ibgp_ge-nc BGP --- up now Established
 dn42_ibgp_hkt BGP --- up now Established
 dn42_ibgp_lax BGP --- up now Established
 """
@@ -66,10 +69,11 @@ dn42_ibgp_lax BGP --- up now Established
         self.assertTrue(result["ok"])
 
     def test_live_audit_parser_reports_a_down_ibgp_session(self):
-        ospf = """dn42_ospf:\na Full/PtP\nb Full/PtP\nc Full/PtP
-dn42_ospf6:\na Full/PtP\nb Full/PtP\nc Full/PtP
+        ospf = """dn42_ospf:\na Full/PtP\nb Full/PtP\nc Full/PtP\nd Full/PtP
+dn42_ospf6:\na Full/PtP\nb Full/PtP\nc Full/PtP\nd Full/PtP
 """
-        protocols = """dn42_ibgp_ge-nc BGP --- up now Established
+        protocols = """dn42_ibgp_cn-sha BGP --- up now Established
+dn42_ibgp_ge-nc BGP --- up now Established
 dn42_ibgp_hkt BGP --- start now Active
 dn42_ibgp_lax BGP --- up now Established
 """
